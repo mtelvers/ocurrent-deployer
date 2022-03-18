@@ -336,12 +336,24 @@ let ocaml_org ?app ?notify:channel ?filter ~sched ~staging_auth () =
   let ocaml_opam_tmcgilchrist = Build.org ?app ~account:"tmcgilchrist" 23527376 in
 
   let build (org, name, builds) = Cluster_build.repo ?channel ~web_ui ~org ~name builds in
+
+  let opam_repository_commit =
+    let repo = { Github.Repo_id.owner = "ocaml"; name = "opam-repository" } in
+    Github.Api.Anonymous.head_of repo @@ `Ref "refs/heads/master"
+  in
+
+  let build_with_opam (org, name, builds) =
+    let opam_repo = opam_repository_commit in
+    Cluster_build.repo ?channel ~web_ui ~org ~name ~opam_repo builds 
+  in
+
   let docker_with_timeout timeout =
     docker ~sched:(Current_ocluster.v ~timeout ?push_auth:staging_auth sched)
   in
+
   let sched = Current_ocluster.v ~timeout ?push_auth:staging_auth sched in
   let docker = docker ~sched in
-  Current.all @@ List.map build @@ filter_list filter [
+  let b = filter_list filter [
     ocurrent, "ocurrent-deployer", [
       docker "Dockerfile"     ["live-ocaml-org", "ocurrent/ci.ocamllabs.io-deployer:live-ocaml-org", [`Ocamlorg_deployer "infra_deployer"]];
     ];
@@ -372,14 +384,18 @@ let ocaml_org ?app ?notify:channel ?filter ~sched ~staging_auth () =
         docker "docker/init/Dockerfile"     ["live", "ocurrent/docs-ci-init:live", [`Ci6 "infra_init"]];
         docker "docker/storage/Dockerfile"  ["live", "ocurrent/docs-ci-storage-server:live", [`Ci6 "infra_storage-server"]];
       ];
-
+    ]  in
+              
+  let a = 
     ocaml_opam_tmcgilchrist, "opam2web", [
-      docker_with_timeout (Duration.of_min 180)
-        "Dockerfile" ["live", "ocurrent/opam.ocaml.org:live", [`Ocamlorg_opam ["opam-3.ocaml.org", "172.30.0.212"]]]
-        ~options:(include_git |> build_kit)
-        ~archs:[`Linux_arm64]
-    ];
-  ]
+        docker_with_timeout (Duration.of_min 180)
+          "Dockerfile" ["live", "ocurrent/opam.ocaml.org:live", [`Ocamlorg_opam ["opam-3.ocaml.org", "172.30.0.212"]]]
+          ~options:(include_git |> build_kit)
+          ~archs:[`Linux_arm64]
+      ]
+  in
+
+  Current.all (build_with_opam a :: List.map build b)
 
 let unikernel dockerfile ~target args services =
   let build_info = { Packet_unikernel.dockerfile; target; args } in
