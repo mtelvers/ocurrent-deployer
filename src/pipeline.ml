@@ -353,6 +353,7 @@ let ocaml_org ?app ?notify:channel ?filter ~sched ~staging_auth () =
   let ocurrent = Build.org ?app ~account:"ocurrent" 23342906 in
   let ocaml = Build.org ?app ~account:"ocaml" 23711648 in
   let ocaml_opam = Build.org ?app ~account:"ocaml-opam" 23690708 in
+  let mtelvers = Build.org ?app ~account:"mtelvers" 10965410 in
 
   let build ?additional_build_args (org, name, builds) =
     Cluster_build.repo ?channel ?additional_build_args ~web_ui ~org ~name builds in
@@ -386,6 +387,10 @@ let ocaml_org ?app ?notify:channel ?filter ~sched ~staging_auth () =
         (* Docker base images @ images.ci.ocaml.org *)
         docker "Dockerfile"     ["live", "ocurrent/base-images:live", [`Ocamlorg_images "base-images_builder"]];
       ];
+
+    mtelvers, "sqlite3-backup", [
+      docker "Dockerfile"     ["master", "ocurrent/sqlite3-backup:live", []];
+    ];
 
     ocurrent, "ocaml-docs-ci", [
         docker "Dockerfile"                 ["live", "ocurrent/docs-ci:live", [`Docs "infra_docs-ci"]];
