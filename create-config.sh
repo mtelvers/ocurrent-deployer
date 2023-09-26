@@ -32,6 +32,7 @@ for host in \
   ci.mirage.io \
   ci.ocamllabs.io \
   deploy.ci.ocaml.org \
+  check.ci.ocaml.org \
   dev1.ocamllabs.io \
   docs.ci.ocaml.org \
   staging.docs.ci.ocaml.org \
